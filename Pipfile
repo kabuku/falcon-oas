@@ -9,4 +9,7 @@ name = "pypi"
 falcon-oas = {editable = true, extras = ["format", "test"], path = "."}
 
 [requires]
-python_version = "3.8"
+python_version = "3.12"
+
+[pipenv]
+allow_prereleases = true

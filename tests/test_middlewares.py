@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+
+
+
+
 
 import falcon
 import pytest
@@ -104,13 +104,14 @@ def test_undocumented_media_type(resource, petstore_dict):
 
     client = testing.TestClient(app)
 
-    with pytest.raises(UndocumentedMediaType):
-        client.simulate_post(
-            path='/api/v1/pets',
-            headers={'Content-Type': str('text/plain')},
-            body='{}',
-        )
+    res = client.simulate_post(
+        path='/api/v1/pets',
+        headers={'Content-Type': str('text/plain')},
+        body='{}',
+    )
 
+    assert res.status_code == 500
+    assert res.text == '{"title": "500 Internal Server Error"}'
     assert resource.called is False
 
 
@@ -159,8 +160,8 @@ def test_security_error(resource, petstore_dict_with_implementation):
 
     client = testing.TestClient(app)
 
-    with pytest.raises(SecurityError):
-        client.simulate_post(path='/api/v1/pets', json={'name': 'momo'})
+    res = client.simulate_post(path='/api/v1/pets', json={'name': 'momo'})
+    assert res.status == falcon.HTTP_INTERNAL_SERVER_ERROR
 
     assert resource.called is False
 
@@ -203,9 +204,9 @@ def test_unmarshal_request_error(resource, petstore_dict):
 
     client = testing.TestClient(app)
 
-    with pytest.raises(UnmarshalError):
-        client.simulate_get(path='/api/v1/pets/xxx')
-
+    res = client.simulate_get(path='/api/v1/pets/xxx')
+    assert res.status_code == 500
+    assert res.text == '{"title": "500 Internal Server Error"}'
     assert resource.called is False
 
 

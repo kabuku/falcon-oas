@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 from collections import OrderedDict
 
@@ -73,7 +69,7 @@ def serialize_problem(req, resp, problem):
     if preferred is None:
         preferred = 'application/json'
 
-    resp.data = problem.to_json().encode('utf-8')
+    resp.data = problem.to_json()
     resp.content_type = preferred
     resp.append_header('Vary', 'Accept')
 
