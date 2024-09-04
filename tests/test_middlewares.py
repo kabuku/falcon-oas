@@ -47,7 +47,7 @@ def resource():
 
 def create_app(spec_dict):
     spec = create_spec_from_dict(spec_dict)
-    app = falcon.API(
+    app = falcon.App(
         middleware=[falcon_oas.Middleware(spec)],
         request_type=falcon_oas.Request,
     )

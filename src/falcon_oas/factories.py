@@ -20,7 +20,7 @@ class OAS(object):
         spec_dict,
         formats=None,
         base_module='',
-        api_factory=falcon.API,
+        api_factory=falcon.App,
         problems=True,
     ):
         self.spec = create_spec_from_dict(spec_dict)

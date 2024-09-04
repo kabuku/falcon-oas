@@ -75,7 +75,7 @@ class _RequestAdapter(Request):
             # Convert ValueError which Falcon 1 raises to
             # falcon.HTTPBadRequest which Falcon 2 raises.
             raise falcon.HTTPBadRequest(
-                'Invalid JSON', 'Could not parse JSON body - {0}'.format(e)
+                title='Invalid JSON', description='Could not parse JSON body - {0}'.format(e)
             )
 
 
