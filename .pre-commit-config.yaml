@@ -7,7 +7,7 @@ repos:
     - --application-directories=.:src
 
 - repo: https://github.com/grktsh/ffffff
-  rev: v2019.10.29
+  rev: v2020.8.31
   hooks:
   - id: ffffff
 

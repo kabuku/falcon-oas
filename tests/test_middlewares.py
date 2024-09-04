@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
 
 
-
-
-
 import falcon
 import pytest
 from falcon import testing
 from oas import create_spec_from_dict
-from oas.exceptions import UndocumentedMediaType
-from oas.exceptions import UnmarshalError
 
 import falcon_oas
 from falcon_oas import extensions
-from falcon_oas.exceptions import SecurityError
-from falcon_oas.middlewares import _get_security_schemes
 from falcon_oas.middlewares import _RequestAdapter
-
+from falcon_oas.middlewares import _get_security_schemes
 
 USER = object()
 
