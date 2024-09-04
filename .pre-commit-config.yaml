@@ -6,10 +6,10 @@ repos:
     args:
     - --application-directories=.:src
 
-- repo: https://github.com/grktsh/ffffff
-  rev: v2020.8.31
+- repo: https://github.com/psf/black
+  rev: 24.8.0
   hooks:
-  - id: ffffff
+  - id: black
 
 - repo: https://github.com/PyCQA/flake8
   rev: 7.1.1

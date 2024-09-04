@@ -8,3 +8,4 @@ write_to_template = "__version__ = '{version}'\n"
 
 [tool.black]
 target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+skip-string-normalization = 1
