@@ -1,4 +1,3 @@
-
 from collections import OrderedDict
 
 import falcon
@@ -63,9 +62,7 @@ class Problem(falcon.HTTPError):
 
 def serialize_problem(req, resp, problem):
     """Serialize the given instance of Problem."""
-    preferred = req.client_prefers(
-        ('application/json', 'application/problem+json')
-    )
+    preferred = req.client_prefers(('application/json', 'application/problem+json'))
     if preferred is None:
         preferred = 'application/json'
 

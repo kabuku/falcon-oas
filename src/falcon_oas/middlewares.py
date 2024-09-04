@@ -1,4 +1,3 @@
-
 import falcon
 from oas import Request
 from oas import unmarshal_request
@@ -108,9 +107,7 @@ class Middleware(object):
         if operation is None:
             return
 
-        schema_unmarshaler = SchemaUnmarshaler(
-            spec=self._spec, formats=self._formats
-        )
+        schema_unmarshaler = SchemaUnmarshaler(spec=self._spec, formats=self._formats)
         req.context['oas'] = context = _Context(schema_unmarshaler)
 
         user = self._access_control.handle(oas_req, operation)

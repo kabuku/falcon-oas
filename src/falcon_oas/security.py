@@ -1,4 +1,3 @@
-
 from six import iteritems
 
 from .exceptions import SecurityError

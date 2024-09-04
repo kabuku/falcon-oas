@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
-
-
 import pytest
 
 from falcon_oas.exceptions import SecurityError
@@ -115,13 +112,9 @@ def test_unknown_security_scheme_name(mocker, access_control):
     assert access_control.handle(request, operation) is None
 
 
-@pytest.mark.parametrize(
-    'security_scheme_type', ['http', 'oauth2', 'openIdConnect']
-)
+@pytest.mark.parametrize('security_scheme_type', ['http', 'oauth2', 'openIdConnect'])
 def test_unsupported_security_scheme_type(mocker, security_scheme_type):
-    access_control = AccessControl(
-        {'test': ({'type': security_scheme_type}, None)}
-    )
+    access_control = AccessControl({'test': ({'type': security_scheme_type}, None)})
     request = mocker.MagicMock()
     operation = {'security': [{'test': []}]}
 

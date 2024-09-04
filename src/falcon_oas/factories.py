@@ -1,4 +1,3 @@
-
 import falcon
 from oas import create_spec_from_dict
 from oas.exceptions import UndocumentedMediaType
@@ -38,16 +37,12 @@ class OAS(object):
 
     @property
     def middleware(self):
-        return Middleware(
-            self.spec, formats=self.formats, base_module=self.base_module
-        )
+        return Middleware(self.spec, formats=self.formats, base_module=self.base_module)
 
     def setup(self, api):
         api.req_options.auto_parse_qs_csv = False
 
-        api.add_error_handler(
-            UndocumentedMediaType, undocumented_media_type_handler
-        )
+        api.add_error_handler(UndocumentedMediaType, undocumented_media_type_handler)
         api.add_error_handler(SecurityError, security_error_handler)
         api.add_error_handler(UnmarshalError, unmarshal_error_handler)
 

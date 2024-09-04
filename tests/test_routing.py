@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
-
-
 from oas import create_spec_from_dict
 
 from falcon_oas import extensions

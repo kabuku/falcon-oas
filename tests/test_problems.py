@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
-
-
 import falcon
 import pytest
 from falcon import testing
@@ -20,9 +17,7 @@ def test_problem():
     title = 'title'
     description = 'description'
     code = 42
-    http_error = falcon.HTTPBadRequest(
-        title=title, description=description, code=code
-    )
+    http_error = falcon.HTTPBadRequest(title=title, description=description, code=code)
     problem = Problem.from_http_error(http_error)
 
     assert isinstance(problem, falcon.HTTPError)

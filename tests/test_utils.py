@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
-
-
 from falcon_oas.utils import import_string
 
 OBJECT = object()
