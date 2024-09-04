@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+
 
 import falcon
 import pytest
@@ -20,9 +17,7 @@ def test_problem():
     title = 'title'
     description = 'description'
     code = 42
-    http_error = falcon.HTTPBadRequest(
-        title=title, description=description, code=code
-    )
+    http_error = falcon.HTTPBadRequest(title=title, description=description, code=code)
     problem = Problem.from_http_error(http_error)
 
     assert isinstance(problem, falcon.HTTPError)

@@ -1,8 +1,4 @@
 """Define OpenAPI Specification Extensions for falcon-oas."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 #: ``x-falcon-oas-implementation`` associates Path Item Object and
 #: Security Scheme Object to implementations respectively.

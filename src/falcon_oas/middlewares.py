@@ -1,8 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import falcon
 from oas import Request
 from oas import unmarshal_request
@@ -80,7 +75,7 @@ class _RequestAdapter(Request):
             # Convert ValueError which Falcon 1 raises to
             # falcon.HTTPBadRequest which Falcon 2 raises.
             raise falcon.HTTPBadRequest(
-                'Invalid JSON', 'Could not parse JSON body - {0}'.format(e)
+                title='Invalid JSON', description='Could not parse JSON body - {0}'.format(e)
             )
 
 
@@ -112,9 +107,7 @@ class Middleware(object):
         if operation is None:
             return
 
-        schema_unmarshaler = SchemaUnmarshaler(
-            spec=self._spec, formats=self._formats
-        )
+        schema_unmarshaler = SchemaUnmarshaler(spec=self._spec, formats=self._formats)
         req.context['oas'] = context = _Context(schema_unmarshaler)
 
         user = self._access_control.handle(oas_req, operation)

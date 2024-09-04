@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+
 
 import falcon
 import pytest
 from falcon import testing
 from oas import create_spec_from_dict
-from oas.exceptions import UndocumentedMediaType
-from oas.exceptions import UnmarshalError
 
 import falcon_oas
 from falcon_oas import extensions
-from falcon_oas.exceptions import SecurityError
-from falcon_oas.middlewares import _get_security_schemes
 from falcon_oas.middlewares import _RequestAdapter
-
+from falcon_oas.middlewares import _get_security_schemes
 
 USER = object()
 
@@ -54,7 +47,7 @@ def resource():
 
 def create_app(spec_dict):
     spec = create_spec_from_dict(spec_dict)
-    app = falcon.API(
+    app = falcon.App(
         middleware=[falcon_oas.Middleware(spec)],
         request_type=falcon_oas.Request,
     )
@@ -104,13 +97,14 @@ def test_undocumented_media_type(resource, petstore_dict):
 
     client = testing.TestClient(app)
 
-    with pytest.raises(UndocumentedMediaType):
-        client.simulate_post(
-            path='/api/v1/pets',
-            headers={'Content-Type': str('text/plain')},
-            body='{}',
-        )
+    res = client.simulate_post(
+        path='/api/v1/pets',
+        headers={'Content-Type': str('text/plain')},
+        body='{}',
+    )
 
+    assert res.status_code == 500
+    assert res.text == '{"title": "500 Internal Server Error"}'
     assert resource.called is False
 
 
@@ -159,8 +153,8 @@ def test_security_error(resource, petstore_dict_with_implementation):
 
     client = testing.TestClient(app)
 
-    with pytest.raises(SecurityError):
-        client.simulate_post(path='/api/v1/pets', json={'name': 'momo'})
+    res = client.simulate_post(path='/api/v1/pets', json={'name': 'momo'})
+    assert res.status == falcon.HTTP_INTERNAL_SERVER_ERROR
 
     assert resource.called is False
 
@@ -203,9 +197,9 @@ def test_unmarshal_request_error(resource, petstore_dict):
 
     client = testing.TestClient(app)
 
-    with pytest.raises(UnmarshalError):
-        client.simulate_get(path='/api/v1/pets/xxx')
-
+    res = client.simulate_get(path='/api/v1/pets/xxx')
+    assert res.status_code == 500
+    assert res.text == '{"title": "500 Internal Server Error"}'
     assert resource.called is False
 
 

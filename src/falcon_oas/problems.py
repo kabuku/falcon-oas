@@ -1,8 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 
 import falcon
@@ -67,13 +62,11 @@ class Problem(falcon.HTTPError):
 
 def serialize_problem(req, resp, problem):
     """Serialize the given instance of Problem."""
-    preferred = req.client_prefers(
-        ('application/json', 'application/problem+json')
-    )
+    preferred = req.client_prefers(('application/json', 'application/problem+json'))
     if preferred is None:
         preferred = 'application/json'
 
-    resp.data = problem.to_json().encode('utf-8')
+    resp.data = problem.to_json()
     resp.content_type = preferred
     resp.append_header('Vary', 'Accept')
 

@@ -7,4 +7,5 @@ write_to = 'src/falcon_oas/__version__.py'
 write_to_template = "__version__ = '{version}'\n"
 
 [tool.black]
-target-version = ['py27', 'py35', 'py36', 'py37', 'py38']
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+skip-string-normalization = 1
