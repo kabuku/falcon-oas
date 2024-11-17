@@ -1,15 +1,18 @@
-from six import iteritems
+from typing import Any, Iterable
 
-from . import extensions
-from .utils import import_string
+from .extensions import FALCON_OAS_IMPLEMENTOR
+from .oas.spec import Spec
+from .utils import import_class_or_function
 
 
-def generate_routes(spec, base_module=''):
-    for path, path_item in iteritems(spec['paths']):
+def generate_routes(spec: Spec, base_module: str = "") -> Iterable[tuple[str, Any]]:
+    for path, path_item in spec.spec_dict["paths"].items():
         try:
-            resource_name = path_item[extensions.IMPLEMENTATION]
+            resource_name = path_item[FALCON_OAS_IMPLEMENTOR]
         except KeyError:
             pass
         else:
-            resource_class = import_string(resource_name, base_module=base_module)
+            resource_class = import_class_or_function(
+                resource_name, base_module=base_module
+            )
             yield spec.base_path + path, resource_class

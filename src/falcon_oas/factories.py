@@ -1,66 +1,66 @@
 import falcon
-from oas import create_spec_from_dict
-from oas.exceptions import UndocumentedMediaType
-from oas.exceptions import UnmarshalError
+from typing import Type
 
-from .exceptions import SecurityError
-from .extensions import IMPLEMENTATION
-from .middlewares import Middleware
-from .problems import http_error_handler
-from .problems import security_error_handler
-from .problems import serialize_problem
-from .problems import undocumented_media_type_handler
-from .problems import unmarshal_error_handler
+from .middlewares.operation import OperationMiddleware
+from .middlewares.request_unmarshal import RequestUnmarshalMiddleware
+from .middlewares.security import SecurityMiddleware, get_security_schemes
+from .oas.exceptions import UnmarshalError
+from .oas.schema.unmarshalers import SchemaUnmarshaller
+from .oas.spec import Spec, create_spec_from_dict
+from .problems import (
+    http_error_handler,
+    serialize_problem,
+    unmarshal_error_handler,
+)
+from .request import Request
 from .routing import generate_routes
 
 
-class OAS(object):
-    def __init__(
-        self,
-        spec_dict,
-        formats=None,
-        base_module='',
-        api_factory=falcon.App,
-        problems=True,
-    ):
-        self.spec = create_spec_from_dict(spec_dict)
-        self.formats = formats
-        self.base_module = base_module
-        self.api_factory = api_factory
-        self.problems = problems
+def create_api(
+    spec_dict: dict,
+    base_uri: str | None = None,
+    middlewares: list | None = None,
+    parsers: dict | None = None,
+    base_module: str = "",
+    base_path: str | None = None,
+    request_type: Type[falcon.Request] = Request,
+) -> falcon.App:
+    spec = create_spec_from_dict(spec_dict, base_uri=base_uri, base_path=base_path)
 
-    def create_api(self, **options):
-        if 'middleware' not in options:
-            options['middleware'] = self.middleware
+    default_middlewares = create_default_middlewares(
+        spec, parsers=parsers, base_module=base_module
+    )
+    if middlewares is not None:
+        default_middlewares.extend(middlewares)
 
-        return self.setup(self.api_factory(**options))
+    api = falcon.App(middleware=default_middlewares, request_type=request_type)
+    api.req_options.auto_parse_qs_csv = False
+    api.add_error_handler(falcon.HTTPError, http_error_handler)
+    api.add_error_handler(UnmarshalError, unmarshal_error_handler)
+    api.set_error_serializer(serialize_problem)
 
-    @property
-    def middleware(self):
-        return Middleware(self.spec, formats=self.formats, base_module=self.base_module)
+    for uri_template, resource_class in generate_routes(spec, base_module=base_module):
+        api.add_route(uri_template, resource_class())
+    return api
 
-    def setup(self, api):
-        api.req_options.auto_parse_qs_csv = False
 
-        api.add_error_handler(UndocumentedMediaType, undocumented_media_type_handler)
-        api.add_error_handler(SecurityError, security_error_handler)
-        api.add_error_handler(UnmarshalError, unmarshal_error_handler)
+def create_default_middlewares(
+    spec: Spec, parsers: dict | None = None, base_module: str = ""
+) -> list:
+    return [
+        OperationMiddleware(spec),
+        create_security_middleware(spec, base_module=base_module),
+        create_request_unmarshal_middleware(spec, parsers=parsers),
+    ]
 
-        if self.problems:
-            api.add_error_handler(falcon.HTTPError, http_error_handler)
-            api.set_error_serializer(serialize_problem)
 
-        for uri_template, resource_class in generate_routes(
-            self.spec, base_module=self.base_module
-        ):
-            api.add_route(uri_template, resource_class())
+def create_security_middleware(spec: Spec, base_module: str = "") -> SecurityMiddleware:
+    security_schemes = get_security_schemes(spec, base_module=base_module)
+    return SecurityMiddleware(security_schemes)
 
-        return api
 
-    def resolve_path_item(self, path, resource):
-        path_item = self.spec['paths'][path]
-        path_item[IMPLEMENTATION] = lambda: resource
-
-    def resolve_security_scheme(self, name, handler):
-        security_scheme = self.spec['components']['securitySchemes'][name]
-        security_scheme[IMPLEMENTATION] = handler
+def create_request_unmarshal_middleware(
+    spec: Spec, parsers: dict | None = None
+) -> RequestUnmarshalMiddleware:
+    schema_unmarshaler = SchemaUnmarshaller(spec, parsers=parsers)
+    return RequestUnmarshalMiddleware(schema_unmarshaler)

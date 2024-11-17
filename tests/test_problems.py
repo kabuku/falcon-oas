@@ -1,100 +1,119 @@
-# -*- coding: utf-8 -*-
-
-
-import falcon
 import pytest
-from falcon import testing
-from oas.exceptions import UnmarshalError
-
-from falcon_oas.problems import http_error_handler
-from falcon_oas.problems import Problem
-from falcon_oas.problems import serialize_problem
-from falcon_oas.problems import unmarshal_error_handler
-from falcon_oas.problems import UNMARSHAL_PROBLEM_TYPE_URI
-
-
-def test_problem():
-    title = 'title'
-    description = 'description'
-    code = 42
-    http_error = falcon.HTTPBadRequest(title=title, description=description, code=code)
-    problem = Problem.from_http_error(http_error)
-
-    assert isinstance(problem, falcon.HTTPError)
-    assert problem.status == falcon.HTTP_BAD_REQUEST
-    assert problem.title == title
-    assert problem.description == description
-    assert problem.code == code
-    assert problem.to_dict() == {
-        'title': title,
-        'status': 400,
-        'detail': description,
-        'code': code,
-    }
+from unittest.mock import MagicMock
+import falcon
+from falcon_oas.problems import (
+    Problem,
+    serialize_problem,
+    http_error_handler,
+    unmarshal_error_handler,
+)
+from falcon_oas.oas.exceptions import UnmarshalError
 
 
-def test_problem_to_dict_without_optional():
-    http_error = falcon.HTTPBadRequest()
-    problem = Problem.from_http_error(http_error)
+def test_problem_initialization():
+    problem = Problem(
+        status=falcon.HTTP_400,
+        title="Bad Request",
+        description="Invalid input",
+        headers={"X-Test": "Header"},
+        code=123,
+        additional_members={"extra": "info"},
+    )
 
-    assert problem.to_dict() == {'title': 'Bad Request', 'status': 400}
+    assert problem.status == falcon.HTTP_400
+    assert problem.title == "Bad Request"
+    assert problem.description == "Invalid input"
+    assert problem.headers == {"X-Test": "Header"}
+    assert problem.code == 123
+    assert problem.additional_members == {"extra": "info"}
+
+
+def test_problem_from_http_error():
+    error = falcon.HTTPError(
+        status=falcon.HTTP_404,
+        title="Not Found",
+        description="Resource not found",
+        headers={"X-Header": "Test"},
+        code=404,
+    )
+    problem = Problem.from_http_error(error)
+
+    assert problem.status == falcon.HTTP_404
+    assert problem.title == "Not Found"
+    assert problem.description == "Resource not found"
+    assert problem.headers == {"X-Header": "Test"}
+    assert problem.code == 404
+
+
+def test_problem_to_dict():
+    problem = Problem(
+        status=falcon.HTTP_400,
+        title="Bad Request",
+        description="Invalid input",
+        code=400,
+        additional_members={"extra": "data"},
+    )
+    result = problem.to_dict()
+
+    assert result["title"] == "Bad Request"
+    assert result["status"] == 400
+    assert result["detail"] == "Invalid input"
+    assert result["code"] == 400
+    assert result["extra"] == "data"
 
 
 def test_serialize_problem():
-    environ = testing.create_environ()
-    req = falcon.Request(environ)
-    resp = falcon.Response()
-    problem = Problem.from_http_error(falcon.HTTPBadRequest())
+    req = MagicMock(spec=falcon.Request)
+    resp = MagicMock(spec=falcon.Response)
+    req.client_prefers.return_value = "application/json"
 
-    serialize_problem(req, resp, problem)
+    error = Problem(
+        status=falcon.HTTP_400, title="Bad Request", description="Invalid input"
+    )
 
-    assert resp.data == b'{"title": "Bad Request", "status": 400}'
-    assert resp.content_type == 'application/problem+json'
-    assert resp.get_header('Vary') == 'Accept'
+    serialize_problem(req, resp, error)
 
-
-def test_serialize_problem_accept_json():
-    environ = testing.create_environ(headers={'Accept': 'application/json'})
-    req = falcon.Request(environ)
-    resp = falcon.Response()
-    problem = Problem.from_http_error(falcon.HTTPBadRequest())
-
-    serialize_problem(req, resp, problem)
-
-    assert resp.content_type == 'application/json'
-
-
-def test_serialize_problem_accept_html():
-    environ = testing.create_environ(headers={'Accept': 'text/html'})
-    req = falcon.Request(environ)
-    resp = falcon.Response()
-    problem = Problem.from_http_error(falcon.HTTPBadRequest())
-
-    serialize_problem(req, resp, problem)
-
-    assert resp.content_type == 'application/json'
+    req.client_prefers.assert_called_once_with(
+        ("application/json", "application/problem+json")
+    )
+    assert resp.data == str(error.to_json()).encode("utf-8")
+    assert resp.content_type == "application/json"
+    resp.append_header.assert_called_once_with("Vary", "Accept")
 
 
 def test_http_error_handler():
-    http_error = falcon.HTTPBadRequest()
-    req = falcon.Request(testing.create_environ())
-    resp = falcon.Response()
-    params = {}
+    req = MagicMock(spec=falcon.Request)
+    resp = MagicMock(spec=falcon.Response)
+    error = falcon.HTTPError(
+        status=falcon.HTTP_404, title="Not Found", description="Resource not found"
+    )
 
-    with pytest.raises(Problem):
-        http_error_handler(http_error, req, resp, params)
+    with pytest.raises(Problem) as excinfo:
+        http_error_handler(req, resp, error, {})
+
+    assert excinfo.value.status == falcon.HTTP_404
+    assert excinfo.value.title == "Not Found"
+    assert excinfo.value.description == "Resource not found"
 
 
 def test_unmarshal_error_handler():
-    unmarshal_error = UnmarshalError()
-    req = falcon.Request(testing.create_environ())
-    resp = falcon.Response()
-    params = {}
+    req = MagicMock(spec=falcon.Request)
+    resp = MagicMock(spec=falcon.Response)
+    error = UnmarshalError(
+        parameters_error=MagicMock(
+            to_dict=lambda obj_type: {"parameters_error": "Invalid parameters"}
+        ),
+        request_body_error=MagicMock(
+            to_dict=lambda obj_type: {"request_body_error": "Invalid request body"}
+        ),
+    )
 
     with pytest.raises(Problem) as excinfo:
-        unmarshal_error_handler(unmarshal_error, req, resp, params)
+        unmarshal_error_handler(req, resp, error, {})
 
-    assert excinfo.value.type_uri == UNMARSHAL_PROBLEM_TYPE_URI
     assert excinfo.value.status == falcon.HTTP_BAD_REQUEST
-    assert excinfo.value.title == 'Unmarshal Error'
-    assert excinfo.value.additional_members == unmarshal_error.to_dict()
+    assert excinfo.value.title == "Unmarshal Error"
+    assert excinfo.value.additional_members == {
+        "parameters_error": "Invalid parameters",
+        "request_body_error": "Invalid request body",
+    }

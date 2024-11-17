@@ -1,42 +1,34 @@
 from collections import OrderedDict
-
 import falcon
+from typing import Callable, MutableMapping, NoReturn, Self
 
-
-UNMARSHAL_PROBLEM_VERSION = '0.3.0'
-UNMARSHAL_PROBLEM_TYPE_URI = (
-    'https://pypi.org/project/falcon-oas/'
-    + UNMARSHAL_PROBLEM_VERSION
-    + '/#unmarshal-error'
-)
+from .oas.exceptions import UnmarshalError
 
 
 class Problem(falcon.HTTPError):
     def __init__(
         self,
-        status,
-        title=None,
-        description=None,
-        headers=None,
-        code=None,
-        type_uri=None,
-        additional_members=None,
-    ):
+        status: str,
+        title: str | None = None,
+        description: str | None = None,
+        headers: dict | list | None = None,
+        code: int | None = None,
+        additional_members: dict | list | None = None,
+    ) -> None:
         if title == status:
             title = status[4:]
 
-        super(Problem, self).__init__(
+        super().__init__(
             status,
             title=title,
             description=description,
             headers=headers,
             code=code,
         )
-        self.type_uri = type_uri
         self.additional_members = additional_members
 
     @classmethod
-    def from_http_error(cls, error):
+    def from_http_error(cls, error: falcon.HTTPError) -> Self:
         return cls(
             error.status,
             title=error.title,
@@ -45,48 +37,49 @@ class Problem(falcon.HTTPError):
             code=error.code,
         )
 
-    def to_dict(self, obj_type=dict):
+    def to_dict(self, obj_type: Callable[[], MutableMapping] = dict) -> MutableMapping:
         obj = obj_type()
-        if self.type_uri is not None:
-            obj['type'] = self.type_uri
-        obj['title'] = self.title
-        obj['status'] = int(self.status[:3])
+        obj["title"] = self.title
+        obj["status"] = int(self.status[:3])
         if self.description is not None:
-            obj['detail'] = self.description
-        if self.code is not None:
-            obj['code'] = self.code
+            obj["detail"] = self.description
         if self.additional_members is not None:
             obj.update(obj_type(self.additional_members))
+        if self.code is not None:
+            obj["code"] = self.code
         return obj
 
 
-def serialize_problem(req, resp, problem):
+def serialize_problem(
+    req: falcon.Request, resp: falcon.Response, error: falcon.HTTPError
+) -> None:
     """Serialize the given instance of Problem."""
-    preferred = req.client_prefers(('application/json', 'application/problem+json'))
+    preferred = req.client_prefers(("application/json", "application/problem+json"))
     if preferred is None:
-        preferred = 'application/json'
+        preferred = "application/json"
 
-    resp.data = problem.to_json()
+    resp.data = error.to_json()
     resp.content_type = preferred
-    resp.append_header('Vary', 'Accept')
+    resp.append_header("Vary", "Accept")
 
 
-def http_error_handler(error, req, resp, params):
+def http_error_handler(
+    req: falcon.Request,
+    resp: falcon.Response,
+    error: falcon.HTTPError,
+    params: dict,
+) -> NoReturn:
     raise Problem.from_http_error(error)
 
 
-def undocumented_media_type_handler(error, req, resp, params):
-    raise Problem.from_http_error(falcon.HTTPBadRequest())
-
-
-def security_error_handler(error, req, resp, params):
-    raise Problem.from_http_error(falcon.HTTPForbidden())
-
-
-def unmarshal_error_handler(error, req, resp, params):
+def unmarshal_error_handler(
+    req: falcon.Request,
+    resp: falcon.Response,
+    error: UnmarshalError,
+    params: dict,
+) -> NoReturn:
     raise Problem(
         falcon.HTTP_BAD_REQUEST,
-        title='Unmarshal Error',
-        type_uri=UNMARSHAL_PROBLEM_TYPE_URI,
+        title="Unmarshal Error",
         additional_members=error.to_dict(obj_type=OrderedDict),
     )
